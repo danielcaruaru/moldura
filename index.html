@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title></title>
+<style>
+    #container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    #canvas-container {
+        position: relative;
+        margin-top: 20px;
+        pointer-events: none;
+    }
+    #downloadBtn {
+        margin-top: 20px;
+        padding: 10px 20px;
+        background-color: #d41103;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+    }
+    #customImageInput {
+        margin-top: 20px;
+        padding: 10px 20px;
+        background-color: #28a745;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+    }
+    #customImageInput:hover {
+        background-color: #218838;
+    }
+    #imageInput {
+        display: none; /* hide the default file input */
+    }
+    .controlBtn {
+        margin: 10px;
+        padding: 5px 10px;
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+    }
+    .controlBtnGroup {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 10px;
+    }
+</style>
+</head>
+<body>
+<div id="container">
+    <div id="canvas-container">
+        <canvas id="canvas" width="300" height="300"></canvas>
+    </div>
+    <label for="imageInput" id="customImageInput">Escolher Imagem</label>
+    <input type="file" id="imageInput" accept="image/*">
+    <br>
+    <div id="selectFrame">
+        <select id="frameSelect">
+            <option value="moldura.png">Eu voto em Romildo 15015</option>
+            <option value="moldura2.png">Eu tô com Romildo+Zé</option>
+            <option value="moldura3.png">Eu tô com Romildo+Sivaldo</option>
+            <option value="moldura4.png">Eu voto em Romildo 15015</option>
+            <option value="moldura5.png">Eu voto em Romildo 15015</option>
+            <option value="moldura6.png">Eu voto em Romildo 15015</option>
+            <option value="moldura7.png">Eu voto em Romildo 15015</option>
+            <option value="moldura8.png">Eu voto em Romildo 15015</option>
+            <option value="moldura9.png">Eu voto em Romildo 15015</option>
+            <option value="moldura10.png">Eu voto em Romildo 15015</option>
+            <option value="moldura11.png">Eu voto em Romildo 15015</option>
+        </select>
+    </div>
+    <div class="controlBtnGroup">
+        <button id="zoomIn" style="display: none" class="controlBtn">Zoom +</button>
+        <button id="zoomOut" style="display: none" class="controlBtn">Zoom -</button>
+    </div>
+    <div class="controlBtnGroup">
+        <button id="moveUp" style="display: none" class="controlBtn">Para cima</button>
+        <button id="moveDown" style="display: none" class="controlBtn">Para baixo</button>
+        <button id="moveLeft" style="display: none" class="controlBtn">Para esquerda</button>
+        <button id="moveRight" style="display: none" class="controlBtn">Para direita</button>
+    </div>
+    <button id="downloadBtn" style="display: none;">Baixar Imagem</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/4.4.0/fabric.min.js"></script>
+<script>
+    const imageInput = document.getElementById('imageInput');
+    const canvas = new fabric.Canvas('canvas');
+    const downloadBtn = document.getElementById('downloadBtn');
+    let imgInstance;
+    let frameInstance;
+    let zoomLevel = 1.0;
+
+    addFrame(); // Adiciona a moldura inicialmente
+
+    document.getElementById('frameSelect').addEventListener('change', function() {
+        const selectedFrame = this.value;
+        if (frameInstance) {
+            canvas.remove(frameInstance); // Remove a moldura existente do canvas
+        }
+        addFrame(selectedFrame); // Adiciona a nova moldura
+    });
+
+    imageInput.addEventListener('change', function() {
+        const file = this.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                if (imgInstance) {
+                    canvas.remove(imgInstance); // Remove a imagem existente do canvas
+                }
+                const aspectRatio = img.width / img.height;
+                imgInstance = new fabric.Image(img, {
+                    scaleX: canvas.width / img.width,
+                    scaleY: (canvas.width / aspectRatio) / img.height,
+                    hasControls: false, // Desativando controles
+                    selectable: false // Desativando seleção
+                });
+
+                canvas.add(imgInstance);
+                canvas.sendToBack(imgInstance); // Envia a imagem para trás
+                canvas.renderAll();
+                downloadBtn.style.display = 'block';
+                document.getElementById('moveUp').style.display = 'inline-block';
+                document.getElementById('moveDown').style.display = 'inline-block';
+                document.getElementById('moveLeft').style.display = 'inline-block';
+                document.getElementById('moveRight').style.display = 'inline-block';
+                document.getElementById('zoomIn').style.display = 'inline-block';
+                document.getElementById('zoomOut').style.display = 'inline-block';
+                if (frameInstance) {
+                    canvas.bringToFront(frameInstance); // Coloca a moldura para a frente novamente
+                }
+            };
+            img.src = e.target.result;
+        };
+
+        reader.readAsDataURL(file);
+    });
+
+    downloadBtn.addEventListener('click', function() {
+        const imgData = canvas.toDataURL({
+            format: 'png',
+            multiplier: 3, // Aumenta o multiplicador para obter uma resolução de 1080x1080
+            quality: 1  // Define a qualidade máxima (1)
+        });
+        const link = document.createElement('a');
+        link.href = imgData;
+        link.download = 'montagem.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+
+    document.getElementById('moveUp').addEventListener('click', function() {
+        imgInstance.set('top', imgInstance.top - 10);
+        canvas.renderAll();
+    });
+
+    document.getElementById('moveDown').addEventListener('click', function() {
+        imgInstance.set('top', imgInstance.top + 10);
+        canvas.renderAll();
+    });
+
+    document.getElementById('moveLeft').addEventListener('click', function() {
+        imgInstance.set('left', imgInstance.left - 10);
+        canvas.renderAll();
+    });
+
+    document.getElementById('moveRight').addEventListener('click', function() {
+        imgInstance.set('left', imgInstance.left + 10);
+        canvas.renderAll();
+    });
+
+    document.getElementById('zoomIn').addEventListener('click', function() {
+        zoomLevel = Math.min(10, zoomLevel * 1.1);
+        const imgScaleX = imgInstance.scaleX;
+        const imgScaleY = imgInstance.scaleY;
+        const newScaleX = imgScaleX * 1.1;
+        const newScaleY = imgScaleY * 1.1;
+        imgInstance.set('scaleX', newScaleX);
+        imgInstance.set('scaleY', newScaleY);
+        canvas.renderAll();
+    });
+
+    document.getElementById('zoomOut').addEventListener('click', function() {
+        zoomLevel = Math.max(0.1, zoomLevel / 1.1);
+        const imgScaleX = imgInstance.scaleX;
+        const imgScaleY = imgInstance.scaleY;
+        const newScaleX = imgScaleX / 1.1;
+        const newScaleY = imgScaleY / 1.1;
+        imgInstance.set('scaleX', newScaleX);
+        imgInstance.set('scaleY', newScaleY);
+        canvas.renderAll();
+    });
+
+    function addFrame(selectedFrame) {
+        fabric.Image.fromURL(selectedFrame || 'moldura.png', function(img) {
+            img.set({
+                scaleX: canvas.width / img.width,
+                scaleY: canvas.height / img.height,
+                selectable: false
+            });
+            frameInstance = img;
+            canvas.add(frameInstance);
+            canvas.bringToFront(frameInstance); // Coloca a moldura para a frente
+        });
+    }
+</script>
+</body>
+</html>
